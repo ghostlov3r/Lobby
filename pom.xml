@@ -26,6 +26,12 @@
             <version>0.0.1</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>dev.ghostlov3r</groupId>
+            <artifactId>MiniGame</artifactId>
+            <version>1.0</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
 </project>

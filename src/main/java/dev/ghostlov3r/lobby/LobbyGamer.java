@@ -1,93 +1,86 @@
 package dev.ghostlov3r.lobby;
 
-import dev.ghostlov3r.beengine.Beengine;
-import dev.ghostlov3r.beengine.block.Blocks;
-import dev.ghostlov3r.beengine.entity.util.EntitySpawnHelper;
-import dev.ghostlov3r.beengine.inventory.PlayerInventory;
-import dev.ghostlov3r.beengine.item.Item;
-import dev.ghostlov3r.beengine.player.Player;
 import dev.ghostlov3r.beengine.player.PlayerInfo;
-import dev.ghostlov3r.beengine.score.Scoreboard;
 import dev.ghostlov3r.beengine.utils.TextFormat;
-import dev.ghostlov3r.beengine.world.Sound;
-import dev.ghostlov3r.beengine.world.World;
 import dev.ghostlov3r.minecraft.MinecraftSession;
+import dev.ghostlov3r.minigame.MGGamer;
 import dev.ghostlov3r.nbt.NbtMap;
-import lord.core.gamer.Gamer;
+import lord.core.Lord;
 
-public class LobbyGamer extends Gamer {
+import java.util.concurrent.TimeUnit;
 
-	public boolean shouldHidePlayers = false;
+import static dev.ghostlov3r.beengine.utils.TextFormat.GREEN;
+import static dev.ghostlov3r.beengine.utils.TextFormat.YELLOW;
+
+public class LobbyGamer extends MGGamer {
 
 	public LobbyGamer(MinecraftSession session, PlayerInfo clientID, boolean ip, NbtMap port) {
 		super(session, clientID, ip, port);
 	}
 
 	@Override
-	public void onSuccessAuth() {
-		setAllowFlight(true);
-		giveItems();
-		setScore(new Scoreboard(this));
-		score().setHeader("Lord Hub");
-		score().show();
-		score().set(0, " ");
-		updateOnlineScore();
-		score().set(2, "  ");
-	}
-
-	void updateOnlineScore () {
-		score().set(1, " Общий онлайн: "+Lobby.instance.online);
-	}
-
-	private void giveItems () {
-		PlayerInventory inv = inventory();
-
-		giveHidingItem();
-	}
-
-	protected Item hidingItem () {
-		return shouldHidePlayers ? Blocks.CARVED_PUMPKIN().asItem() : Blocks.LIT_PUMPKIN().asItem();
-	}
-
-	private int nextHidingUse;
-
-	private static final int HIDE_PLAYERS_SLOT = 1;
-
-	protected void giveHidingItem () {
-		inventory().setItem(HIDE_PLAYERS_SLOT, hidingItem()
-				.setCustomName(decorateName(shouldHidePlayers ? "Показать игроков" : "Скрыть игроков"))
-				.onInteract((p, b) -> {
-					if (world == World.defaultWorld()) {
-						if (nextHidingUse < Beengine.thread().currentTick()) {
-							nextHidingUse = Beengine.thread().currentTick() + 40;
-							shouldHidePlayers = !shouldHidePlayers;
-							if (shouldHidePlayers) {
-								viewers().forEach(viewer -> {
-									EntitySpawnHelper.despawn(viewer, LobbyGamer.this);
-								});
-							} else {
-								world.unsafe().getViewersForPosition(LobbyGamer.this).forEach(viewer -> {
-									EntitySpawnHelper.spawn(viewer, LobbyGamer.this);
-								});
-							}
-							giveHidingItem();
-							broadcastSound(Sound.POP, asList());
-						}
-					}
-				})
-		);
-	}
-
-	public String decorateName(String name) {
-		return TextFormat.GREEN + Lobby.instance.config().menuItemDecorSymbol + " " + TextFormat.GOLD + name + " " + TextFormat.GREEN + Lobby.instance.config().menuItemDecorSymbol;
+	protected ScoreUpdater newScoreUpdater() {
+		return new LobbyScoreUpdater();
 	}
 
 	@Override
-	public boolean shouldSpawnTo (Player player) {
-		LobbyGamer gamer = (LobbyGamer) player;
-		if (gamer.world == World.defaultWorld() && gamer.shouldHidePlayers) {
-			return false;
+	protected InventoryUpdater newInvUpdater() {
+		return new LobbyInventoryUpdater();
+	}
+
+	class LobbyInventoryUpdater extends InventoryUpdater {
+		@Override
+		protected void giveGameInfoItem() {
+			// NOOP
 		}
-		return super.shouldSpawnTo(player);
+
+		@Override
+		protected void giveStatsItem() {
+			// NOOP
+		}
+
+		@Override
+		protected void giveServerListItem() {
+			// NOOP
+		}
+	}
+
+	class LobbyScoreUpdater extends ScoreUpdater {
+		@Override
+		public void onLobbyJoin() {
+			updateAllScoreLines();
+		}
+
+		void updateAllScoreLines () {
+			score().set(0, " ");
+			score().set(1, " Ник: "+ TextFormat.YELLOW+name()+ " ");
+			score().set(2, " Ранг: "+ group().getPrefix() + " ");
+			score().set(3, "  ");
+			updateBalance();
+			updatePlayedTime();
+			score().set(6, "   ");
+			onFullOnlineCountChange(Lord.unionHandler.thisServer().onlineCount);
+			score().set(8, "    ");
+		}
+
+		void updateBalance () {
+			score().set(4, " Золото: " + TextFormat.YELLOW+money+" ");
+		}
+
+		void updatePlayedTime () {
+			long hours = TimeUnit.MINUTES.toHours(playedMinutes);
+			String strHours = String.valueOf(hours);
+			String end = switch (strHours.charAt(strHours.length() - 1)) {
+				case '1' -> " час ";
+				case '2', '3', '4' -> " часа ";
+				default -> " часов ";
+			};
+			score().set(5, " Наиграно: "+GREEN+strHours+end);
+		}
+
+		@Override
+		public void onFullOnlineCountChange(int newCount) {
+			score().set(7, " Онлайн проекта: "+YELLOW+newCount+" ");
+		}
 	}
 }
