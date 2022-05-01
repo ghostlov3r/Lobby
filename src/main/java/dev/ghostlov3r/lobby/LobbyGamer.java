@@ -1,16 +1,16 @@
 package dev.ghostlov3r.lobby;
 
-import dev.ghostlov3r.beengine.player.PlayerInfo;
-import dev.ghostlov3r.beengine.utils.TextFormat;
-import dev.ghostlov3r.minecraft.MinecraftSession;
+import beengine.minecraft.MinecraftSession;
+import beengine.nbt.NbtMap;
+import beengine.player.PlayerInfo;
+import beengine.util.TextFormat;
 import dev.ghostlov3r.minigame.MGGamer;
-import dev.ghostlov3r.nbt.NbtMap;
 import lord.core.Lord;
 
 import java.util.concurrent.TimeUnit;
 
-import static dev.ghostlov3r.beengine.utils.TextFormat.GREEN;
-import static dev.ghostlov3r.beengine.utils.TextFormat.YELLOW;
+import static beengine.util.TextFormat.GREEN;
+import static beengine.util.TextFormat.YELLOW;
 
 public class LobbyGamer extends MGGamer {
 
@@ -53,18 +53,24 @@ public class LobbyGamer extends MGGamer {
 
 		void updateAllScoreLines () {
 			score().set(0, " ");
-			score().set(1, " Ник: "+ TextFormat.YELLOW+name()+ " ");
+			score().set(1, " Ник: "+ YELLOW+name()+ " ");
 			score().set(2, " Ранг: "+ group().getPrefix() + " ");
 			score().set(3, "  ");
-			updateBalance();
+			showGoldBalance();
 			updatePlayedTime();
 			score().set(6, "   ");
 			onFullOnlineCountChange(Lord.unionHandler.thisServer().onlineCount);
 			score().set(8, "    ");
 		}
 
-		void updateBalance () {
-			score().set(4, " Золото: " + TextFormat.YELLOW+money+" ");
+		@Override
+		protected void showGoldBalance() {
+			score().set(4, " Золото: " + YELLOW+goldMoney()+' '+'\uE102');
+		}
+
+		@Override
+		protected void showSilverBalance() {
+			// NOOP
 		}
 
 		void updatePlayedTime () {
